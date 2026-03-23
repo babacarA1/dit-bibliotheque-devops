@@ -35,7 +35,7 @@ services:
       - dit-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:5001/health')\" || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 3
@@ -55,7 +55,7 @@ services:
       - dit-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5002/health"]
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:5002/health')\" || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 3
@@ -81,7 +81,7 @@ services:
       - dit-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5003/health"]
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:5003/health')\" || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 3

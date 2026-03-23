@@ -14,7 +14,7 @@
                           │ HTTP :80
                           ▼
 ┌─────────────────────────────────────────────────────────────┐
-│              FRONTEND (Nginx + HTML/CSS/JS)                 │
+│              FRONTEND (Nginx + React/Vite SPA)              │
 │                      Port: 80                               │
 └────┬──────────────────┬─────────────────────┬───────────────┘
      │ /api/books       │ /api/users          │ /api/loans
@@ -158,9 +158,13 @@ dit-bibliotheque/
 │       ├── requirements.txt
 │       └── Dockerfile
 ├── frontend/
-│   ├── index.html              # Application SPA
+│   ├── src/                    # Code source React (App, Composants, Pages)
+│   ├── package.json            # Dépendances Vite & React
+│   ├── vite.config.js          # Configuration Vite
+│   ├── index.html              # Point d'entrée SPA
 │   ├── nginx.conf              # Config reverse proxy
-│   └── Dockerfile
+│   └── Dockerfile              # Dockerfile Multi-stage (Node + Nginx)
+├── frontend-old/               # Ancienne version HTML (Backup)
 ├── docker-compose.yml          # Orchestration Docker
 ├── Jenkinsfile                 # Pipeline CI/CD
 └── README.md
@@ -174,7 +178,7 @@ dit-bibliotheque/
 |-----------|------------|
 | Backend | Python / Flask |
 | Base de données | PostgreSQL 15 |
-| Frontend | HTML5 / CSS3 / JavaScript |
+| Frontend | React 18 / Vite / JSX |
 | Conteneurisation | Docker |
 | Orchestration | Docker Compose |
 | Reverse Proxy | Nginx |
