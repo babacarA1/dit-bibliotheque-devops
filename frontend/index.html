@@ -1,0 +1,1322 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>DIT Bibliothèque Numérique</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --surface2: #1a2235;
+    --border: #1e2d45;
+    --accent: #00d4ff;
+    --accent2: #7c3aed;
+    --gold: #f59e0b;
+    --danger: #ef4444;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --font: 'Sora', sans-serif;
+    --mono: 'Space Mono', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .app { position: relative; z-index: 1; display: flex; min-height: 100vh; }
+
+  /* Sidebar */
+  .sidebar {
+    width: 260px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    height: 100vh;
+    top: 0; left: 0;
+    overflow-y: auto;
+  }
+
+  .sidebar-logo {
+    padding: 24px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .logo-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .logo-icon {
+    width: 38px; height: 38px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .logo-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.3px;
+  }
+  .logo-sub {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: var(--mono);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .sidebar-nav {
+    flex: 1;
+    padding: 16px 12px;
+  }
+  .nav-section {
+    margin-bottom: 24px;
+  }
+  .nav-label {
+    font-size: 10px;
+    font-family: var(--mono);
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 0 8px;
+    margin-bottom: 8px;
+  }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--muted);
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 2px;
+    border: 1px solid transparent;
+  }
+  .nav-item:hover {
+    background: var(--surface2);
+    color: var(--text);
+    border-color: var(--border);
+  }
+  .nav-item.active {
+    background: linear-gradient(135deg, rgba(0,212,255,0.15), rgba(124,58,237,0.15));
+    color: var(--accent);
+    border-color: rgba(0,212,255,0.3);
+  }
+  .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+
+  .sidebar-footer {
+    padding: 16px;
+    border-top: 1px solid var(--border);
+  }
+  .version-tag {
+    font-size: 11px;
+    font-family: var(--mono);
+    color: var(--muted);
+    text-align: center;
+  }
+
+  /* Main */
+  .main {
+    margin-left: 260px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  /* Topbar */
+  .topbar {
+    height: 64px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 28px;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .topbar-title { font-size: 18px; font-weight: 600; }
+  .topbar-actions { display: flex; gap: 10px; align-items: center; }
+
+  /* Content */
+  .content { padding: 28px; }
+
+  /* Stats grid */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s, border-color 0.2s;
+  }
+  .stat-card:hover { transform: translateY(-2px); border-color: var(--accent); }
+  .stat-card::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent-color, var(--accent));
+  }
+  .stat-card.gold::after { --accent-color: var(--gold); }
+  .stat-card.purple::after { --accent-color: var(--accent2); }
+  .stat-card.red::after { --accent-color: var(--danger); }
+
+  .stat-label { font-size: 12px; color: var(--muted); font-family: var(--mono); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+  .stat-value { font-size: 32px; font-weight: 700; line-height: 1; margin-bottom: 6px; }
+  .stat-sub { font-size: 12px; color: var(--muted); }
+  .stat-icon { position: absolute; top: 16px; right: 16px; font-size: 24px; opacity: 0.3; }
+
+  /* Tables */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--border);
+  }
+  .card-title { font-size: 15px; font-weight: 600; }
+  .card-body { padding: 0; }
+
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  thead tr { background: var(--surface2); }
+  th {
+    padding: 12px 16px;
+    text-align: left;
+    font-size: 11px;
+    font-family: var(--mono);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  td {
+    padding: 14px 16px;
+    font-size: 13px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+
+  /* Badges */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: var(--mono);
+    white-space: nowrap;
+  }
+  .badge-blue { background: rgba(0,212,255,0.15); color: var(--accent); }
+  .badge-green { background: rgba(16,185,129,0.15); color: var(--success); }
+  .badge-yellow { background: rgba(245,158,11,0.15); color: var(--warning); }
+  .badge-red { background: rgba(239,68,68,0.15); color: var(--danger); }
+  .badge-purple { background: rgba(124,58,237,0.15); color: #a78bfa; }
+  .badge-gray { background: rgba(100,116,139,0.2); color: var(--muted); }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+    font-family: var(--font);
+    white-space: nowrap;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: white;
+  }
+  .btn-primary:hover { opacity: 0.85; transform: translateY(-1px); }
+  .btn-ghost {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover { background: var(--surface2); color: var(--text); }
+  .btn-danger {
+    background: rgba(239,68,68,0.15);
+    color: var(--danger);
+    border: 1px solid rgba(239,68,68,0.3);
+  }
+  .btn-danger:hover { background: rgba(239,68,68,0.25); }
+  .btn-success {
+    background: rgba(16,185,129,0.15);
+    color: var(--success);
+    border: 1px solid rgba(16,185,129,0.3);
+  }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+
+  /* Search */
+  .search-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 14px;
+    flex: 1;
+    max-width: 340px;
+  }
+  .search-bar input {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-size: 13px;
+    font-family: var(--font);
+    flex: 1;
+  }
+  .search-bar input::placeholder { color: var(--muted); }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(4px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: fadeIn 0.2s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 520px;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: slideUp 0.2s ease;
+  }
+  @keyframes slideUp { from { transform: translateY(20px); opacity: 0 } to { transform: translateY(0); opacity: 1 } }
+  .modal-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .modal-title { font-size: 16px; font-weight: 600; }
+  .modal-body { padding: 24px; }
+  .modal-footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+  }
+
+  /* Forms */
+  .form-group { margin-bottom: 18px; }
+  .form-label { display: block; font-size: 12px; font-family: var(--mono); color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
+  .form-control {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-size: 14px;
+    font-family: var(--font);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .form-control:focus { border-color: var(--accent); }
+  select.form-control option { background: var(--surface2); }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+  /* Toast */
+  .toast-container {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .toast {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    animation: toastIn 0.3s ease;
+    min-width: 280px;
+    max-width: 360px;
+  }
+  @keyframes toastIn { from { transform: translateX(40px); opacity: 0 } to { transform: translateX(0); opacity: 1 } }
+  .toast.success { border-left: 3px solid var(--success); }
+  .toast.error { border-left: 3px solid var(--danger); }
+
+  /* Empty state */
+  .empty { padding: 48px; text-align: center; color: var(--muted); }
+  .empty-icon { font-size: 48px; margin-bottom: 12px; }
+  .empty-text { font-size: 14px; }
+
+  /* Loading */
+  .loading { padding: 40px; text-align: center; color: var(--muted); }
+  .spinner {
+    width: 32px; height: 32px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 12px;
+  }
+  @keyframes spin { to { transform: rotate(360deg) } }
+
+  /* Dashboard welcome */
+  .welcome-banner {
+    background: linear-gradient(135deg, rgba(0,212,255,0.1), rgba(124,58,237,0.1));
+    border: 1px solid rgba(0,212,255,0.2);
+    border-radius: 16px;
+    padding: 28px 32px;
+    margin-bottom: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .welcome-text h2 { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+  .welcome-text p { color: var(--muted); font-size: 14px; }
+  .welcome-emoji { font-size: 56px; }
+
+  /* Filter bar */
+  .filter-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+  /* Availability indicator */
+  .avail-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+  }
+  .avail-track {
+    width: 60px; height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .avail-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--success);
+    transition: width 0.3s;
+  }
+  .avail-fill.low { background: var(--danger); }
+  .avail-fill.mid { background: var(--warning); }
+
+  /* Page transitions */
+  .page { animation: pageIn 0.25s ease; }
+  @keyframes pageIn { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: translateY(0) } }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 700px) {
+    .sidebar { transform: translateX(-100%); }
+    .main { margin-left: 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app" id="app">
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-badge">
+        <div class="logo-icon">📚</div>
+        <div>
+          <div class="logo-title">DIT Library</div>
+        </div>
+      </div>
+      <div class="logo-sub">Bibliothèque Numérique</div>
+    </div>
+    <div class="sidebar-nav">
+      <div class="nav-section">
+        <div class="nav-label">Navigation</div>
+        <div class="nav-item active" onclick="navigate('dashboard')" id="nav-dashboard">
+          <span class="nav-icon">🏠</span> Tableau de bord
+        </div>
+        <div class="nav-item" onclick="navigate('books')" id="nav-books">
+          <span class="nav-icon">📖</span> Livres
+        </div>
+        <div class="nav-item" onclick="navigate('users')" id="nav-users">
+          <span class="nav-icon">👥</span> Utilisateurs
+        </div>
+        <div class="nav-item" onclick="navigate('loans')" id="nav-loans">
+          <span class="nav-icon">🔄</span> Emprunts
+        </div>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">Services</div>
+        <div class="nav-item" onclick="navigate('status')" id="nav-status">
+          <span class="nav-icon">⚡</span> Statut Services
+        </div>
+      </div>
+    </div>
+    <div class="sidebar-footer">
+      <div class="version-tag">DIT v1.0.0 · DevOps 2026</div>
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-title" id="page-title">Tableau de bord</div>
+      <div class="topbar-actions" id="topbar-actions"></div>
+    </div>
+    <div class="content" id="page-content">
+      <div class="loading"><div class="spinner"></div>Chargement...</div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toasts"></div>
+
+<!-- Modal container -->
+<div id="modal-container"></div>
+
+<script>
+// ============================================================
+// CONFIG
+// ============================================================
+const API = {
+  books: '/api/books',
+  users: '/api/users',
+  loans: '/api/loans',
+};
+
+// For demo mode when backend is unavailable
+const DEMO = true;
+const DEMO_DATA = {
+  books: [
+    {id:1,title:"Clean Code",author:"Robert C. Martin",isbn:"978-0132350884",category:"Informatique",total_copies:3,available_copies:2,published_year:2008},
+    {id:2,title:"The Pragmatic Programmer",author:"Andrew Hunt",isbn:"978-0201616224",category:"Informatique",total_copies:2,available_copies:1,published_year:1999},
+    {id:3,title:"Design Patterns",author:"Gang of Four",isbn:"978-0201633610",category:"Informatique",total_copies:2,available_copies:2,published_year:1994},
+    {id:4,title:"Introduction à l'IA",author:"Stuart Russell",isbn:"978-2744073076",category:"Intelligence Artificielle",total_copies:4,available_copies:3,published_year:2021},
+    {id:5,title:"Deep Learning",author:"Ian Goodfellow",isbn:"978-0262035613",category:"Intelligence Artificielle",total_copies:3,available_copies:1,published_year:2016},
+    {id:6,title:"Python Machine Learning",author:"Sebastian Raschka",isbn:"978-1789955750",category:"Intelligence Artificielle",total_copies:2,available_copies:2,published_year:2019},
+  ],
+  users: [
+    {id:1,name:"Amadou Diallo",email:"amadou@dit.sn",user_type:"Etudiant",student_id:"DIT2024001",phone:"+221771234567",is_active:true},
+    {id:2,name:"Fatou Sow",email:"fatou@dit.sn",user_type:"Etudiant",student_id:"DIT2024002",phone:"+221772345678",is_active:true},
+    {id:3,name:"Dr. Moussa Traoré",email:"moussa@dit.sn",user_type:"Professeur",phone:"+221773456789",is_active:true},
+    {id:4,name:"Aïssatou Ba",email:"aissatou@dit.sn",user_type:"Personnel administratif",phone:"+221774567890",is_active:true},
+    {id:5,name:"Ibrahima Ndiaye",email:"ibrahima@dit.sn",user_type:"Etudiant",student_id:"DIT2024003",phone:"+221775678901",is_active:true},
+  ],
+  loans: [
+    {id:1,book_id:1,user_id:1,borrowed_at:"2026-03-10T09:00:00",due_date:"2026-03-24T09:00:00",returned_at:null,status:"active",is_overdue:false,book:{title:"Clean Code",author:"Robert C. Martin"},user:{name:"Amadou Diallo",user_type:"Etudiant"}},
+    {id:2,book_id:5,user_id:2,borrowed_at:"2026-03-05T10:00:00",due_date:"2026-03-19T10:00:00",returned_at:null,status:"overdue",is_overdue:true,days_overdue:3,book:{title:"Deep Learning",author:"Ian Goodfellow"},user:{name:"Fatou Sow",user_type:"Etudiant"}},
+    {id:3,book_id:2,user_id:3,borrowed_at:"2026-03-08T11:00:00",due_date:"2026-03-22T11:00:00",returned_at:null,status:"active",is_overdue:false,book:{title:"The Pragmatic Programmer",author:"Andrew Hunt"},user:{name:"Dr. Moussa Traoré",user_type:"Professeur"}},
+    {id:4,book_id:3,user_id:1,borrowed_at:"2026-02-20T09:00:00",due_date:"2026-03-06T09:00:00",returned_at:"2026-03-04T14:00:00",status:"returned",is_overdue:false,book:{title:"Design Patterns",author:"Gang of Four"},user:{name:"Amadou Diallo",user_type:"Etudiant"}},
+  ]
+};
+
+let currentPage = 'dashboard';
+
+// ============================================================
+// API HELPERS
+// ============================================================
+async function fetchData(url) {
+  if (DEMO) return null;
+  try {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(r.statusText);
+    return r.json();
+  } catch (e) { return null; }
+}
+
+async function postData(url, data) {
+  const r = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data) });
+  return { ok: r.ok, data: await r.json() };
+}
+
+async function putData(url, data) {
+  const r = await fetch(url, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data) });
+  return { ok: r.ok, data: await r.json() };
+}
+
+async function deleteData(url) {
+  const r = await fetch(url, { method:'DELETE' });
+  return { ok: r.ok };
+}
+
+// ============================================================
+// TOAST
+// ============================================================
+function toast(msg, type = 'success') {
+  const c = document.getElementById('toasts');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.innerHTML = `<span>${type === 'success' ? '✅' : '❌'}</span> ${msg}`;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+// ============================================================
+// MODAL
+// ============================================================
+function openModal(html, onSubmit) {
+  const c = document.getElementById('modal-container');
+  c.innerHTML = `<div class="modal-overlay" id="modal-overlay">${html}</div>`;
+  document.getElementById('modal-overlay').addEventListener('click', e => {
+    if (e.target.id === 'modal-overlay') closeModal();
+  });
+}
+
+function closeModal() {
+  document.getElementById('modal-container').innerHTML = '';
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function navigate(page) {
+  currentPage = page;
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const nav = document.getElementById(`nav-${page}`);
+  if (nav) nav.classList.add('active');
+
+  const titles = {
+    dashboard: 'Tableau de bord',
+    books: 'Gestion des Livres',
+    users: 'Gestion des Utilisateurs',
+    loans: 'Gestion des Emprunts',
+    status: 'Statut des Services'
+  };
+  document.getElementById('page-title').textContent = titles[page] || page;
+
+  const pages = { dashboard, books, users, loans, status };
+  if (pages[page]) pages[page]();
+}
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+async function dashboard() {
+  const booksData = DEMO ? DEMO_DATA.books : (await fetchData(API.books + '/stats') || {});
+  const usersData = DEMO ? DEMO_DATA.users : (await fetchData(API.users + '/stats') || {});
+  const loansData = DEMO ? DEMO_DATA.loans : (await fetchData(API.loans + '/stats') || {});
+
+  const totalBooks = DEMO ? booksData.length : (booksData.total_books || 0);
+  const totalUsers = DEMO ? usersData.length : (usersData.total_users || 0);
+  const activeLoans = DEMO ? booksData.filter ? 0 : 0 : (loansData.active_loans || 0);
+  const overdueLoans = DEMO ? DEMO_DATA.loans.filter(l => l.is_overdue).length : (loansData.overdue_loans || 0);
+
+  const dActiveLoans = DEMO_DATA.loans.filter(l => l.status === 'active').length;
+
+  document.getElementById('topbar-actions').innerHTML = '';
+
+  const recentLoans = DEMO_DATA.loans.slice(0, 3);
+
+  document.getElementById('page-content').innerHTML = `
+    <div class="page">
+      <div class="welcome-banner">
+        <div class="welcome-text">
+          <h2>Bienvenue à la Bibliothèque DIT 📚</h2>
+          <p>Gérez vos livres, utilisateurs et emprunts depuis ce tableau de bord centralisé.</p>
+        </div>
+        <div class="welcome-emoji">🎓</div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon">📖</div>
+          <div class="stat-label">Total Livres</div>
+          <div class="stat-value" style="color:var(--accent)">${DEMO_DATA.books.length}</div>
+          <div class="stat-sub">${DEMO_DATA.books.reduce((s,b)=>s+b.available_copies,0)} disponibles</div>
+        </div>
+        <div class="stat-card gold">
+          <div class="stat-icon">👥</div>
+          <div class="stat-label">Utilisateurs</div>
+          <div class="stat-value" style="color:var(--gold)">${DEMO_DATA.users.length}</div>
+          <div class="stat-sub">Actifs dans le système</div>
+        </div>
+        <div class="stat-card purple">
+          <div class="stat-icon">🔄</div>
+          <div class="stat-label">Emprunts Actifs</div>
+          <div class="stat-value" style="color:var(--accent2)">${dActiveLoans}</div>
+          <div class="stat-sub">${DEMO_DATA.loans.length} total historique</div>
+        </div>
+        <div class="stat-card red">
+          <div class="stat-icon">⚠️</div>
+          <div class="stat-label">En Retard</div>
+          <div class="stat-value" style="color:var(--danger)">${overdueLoans}</div>
+          <div class="stat-sub">Retours en attente</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Emprunts Récents</div>
+            <button class="btn btn-ghost btn-sm" onclick="navigate('loans')">Voir tout →</button>
+          </div>
+          <div class="card-body">
+            <table>
+              <thead><tr><th>Livre</th><th>Utilisateur</th><th>Statut</th></tr></thead>
+              <tbody>
+                ${recentLoans.map(l => `
+                  <tr>
+                    <td style="font-weight:500">${l.book?.title || 'N/A'}</td>
+                    <td><span style="color:var(--muted)">${l.user?.name || 'N/A'}</span></td>
+                    <td>${loanBadge(l)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Livres Populaires</div>
+            <button class="btn btn-ghost btn-sm" onclick="navigate('books')">Voir tout →</button>
+          </div>
+          <div class="card-body">
+            <table>
+              <thead><tr><th>Titre</th><th>Catégorie</th><th>Dispo</th></tr></thead>
+              <tbody>
+                ${DEMO_DATA.books.slice(0,5).map(b => `
+                  <tr>
+                    <td style="font-weight:500">${b.title}</td>
+                    <td><span class="badge badge-blue">${b.category}</span></td>
+                    <td>${availBar(b)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:20px">
+        <div class="card-header">
+          <div class="card-title">Répartition des Utilisateurs</div>
+        </div>
+        <div class="card-body" style="padding:20px">
+          <div style="display:flex;gap:24px;flex-wrap:wrap">
+            ${[{t:'Etudiant',e:'🎓',c:'badge-blue'},{t:'Professeur',e:'👨‍🏫',c:'badge-purple'},{t:'Personnel administratif',e:'💼',c:'badge-yellow'}].map(ut => {
+              const count = DEMO_DATA.users.filter(u => u.user_type === ut.t).length;
+              return `<div style="display:flex;align-items:center;gap:10px;padding:14px 20px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;flex:1;min-width:180px">
+                <span style="font-size:24px">${ut.e}</span>
+                <div>
+                  <div style="font-size:22px;font-weight:700">${count}</div>
+                  <div style="font-size:12px;color:var(--muted)">${ut.t}</div>
+                </div>
+              </div>`;
+            }).join('')}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function loanBadge(loan) {
+  if (loan.is_overdue || loan.status === 'overdue') return `<span class="badge badge-red">⚠ Retard</span>`;
+  if (loan.status === 'returned') return `<span class="badge badge-green">✓ Retourné</span>`;
+  return `<span class="badge badge-blue">● Actif</span>`;
+}
+
+function availBar(book) {
+  const pct = book.total_copies > 0 ? (book.available_copies / book.total_copies) * 100 : 0;
+  const cls = pct < 34 ? 'low' : pct < 67 ? 'mid' : '';
+  return `<div class="avail-bar">
+    <div class="avail-track"><div class="avail-fill ${cls}" style="width:${pct}%"></div></div>
+    <span style="color:var(--muted);font-size:11px">${book.available_copies}/${book.total_copies}</span>
+  </div>`;
+}
+
+// ============================================================
+// BOOKS
+// ============================================================
+let booksSearch = '';
+let booksList = [...DEMO_DATA.books];
+
+async function books() {
+  document.getElementById('topbar-actions').innerHTML = `
+    <div class="search-bar">
+      <span>🔍</span>
+      <input type="text" placeholder="Titre, auteur ou ISBN..." id="books-search" value="${booksSearch}" oninput="filterBooks(this.value)">
+    </div>
+    <button class="btn btn-primary" onclick="openBookModal()">+ Ajouter un livre</button>
+  `;
+  renderBooksTable();
+}
+
+function filterBooks(val) {
+  booksSearch = val.toLowerCase();
+  renderBooksTable();
+}
+
+function renderBooksTable() {
+  const filtered = booksList.filter(b =>
+    b.title.toLowerCase().includes(booksSearch) ||
+    b.author.toLowerCase().includes(booksSearch) ||
+    b.isbn.toLowerCase().includes(booksSearch)
+  );
+
+  document.getElementById('page-content').innerHTML = `
+    <div class="page">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">📖 Catalogue — ${filtered.length} livre(s)</div>
+        </div>
+        <div class="card-body table-wrap">
+          ${filtered.length === 0 ? '<div class="empty"><div class="empty-icon">📭</div><div class="empty-text">Aucun livre trouvé</div></div>' : `
+          <table>
+            <thead><tr><th>#</th><th>Titre</th><th>Auteur</th><th>ISBN</th><th>Catégorie</th><th>Disponibilité</th><th>Année</th><th>Actions</th></tr></thead>
+            <tbody>
+              ${filtered.map(b => `
+                <tr>
+                  <td style="color:var(--muted);font-family:var(--mono)">${b.id}</td>
+                  <td style="font-weight:600;max-width:180px">${b.title}</td>
+                  <td style="color:var(--muted)">${b.author}</td>
+                  <td style="font-family:var(--mono);font-size:11px;color:var(--muted)">${b.isbn}</td>
+                  <td><span class="badge badge-blue">${b.category || '—'}</span></td>
+                  <td>${availBar(b)}</td>
+                  <td style="color:var(--muted)">${b.published_year || '—'}</td>
+                  <td>
+                    <div style="display:flex;gap:6px">
+                      <button class="btn btn-ghost btn-sm" onclick="openBookModal(${b.id})">✏️</button>
+                      <button class="btn btn-danger btn-sm" onclick="deleteBook(${b.id})">🗑️</button>
+                    </div>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>`}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function openBookModal(id) {
+  const book = id ? booksList.find(b => b.id === id) : null;
+  const title = book ? 'Modifier le livre' : 'Ajouter un livre';
+  openModal(`
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">${title}</div>
+        <button class="btn btn-ghost btn-sm" onclick="closeModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Titre *</label>
+            <input class="form-control" id="f-title" value="${book?.title||''}" placeholder="Titre du livre">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Auteur *</label>
+            <input class="form-control" id="f-author" value="${book?.author||''}" placeholder="Nom de l'auteur">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">ISBN *</label>
+            <input class="form-control" id="f-isbn" value="${book?.isbn||''}" placeholder="978-...">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Année</label>
+            <input class="form-control" id="f-year" type="number" value="${book?.published_year||''}" placeholder="2024">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Catégorie</label>
+            <select class="form-control" id="f-cat">
+              ${['Informatique','Intelligence Artificielle','Mathématiques','Sciences','Littérature','Droit','Économie','Autre'].map(c =>
+                `<option ${book?.category===c?'selected':''}>${c}</option>`
+              ).join('')}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Nb. Exemplaires</label>
+            <input class="form-control" id="f-copies" type="number" value="${book?.total_copies||1}" min="1">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <input class="form-control" id="f-desc" value="${book?.description||''}" placeholder="Description optionnelle">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeModal()">Annuler</button>
+        <button class="btn btn-primary" onclick="saveBook(${id||'null'})">${book ? 'Modifier' : 'Ajouter'}</button>
+      </div>
+    </div>
+  `);
+}
+
+function saveBook(id) {
+  const title = document.getElementById('f-title').value.trim();
+  const author = document.getElementById('f-author').value.trim();
+  const isbn = document.getElementById('f-isbn').value.trim();
+  if (!title || !author || !isbn) { toast('Titre, auteur et ISBN sont requis', 'error'); return; }
+
+  const data = {
+    title, author, isbn,
+    category: document.getElementById('f-cat').value,
+    published_year: parseInt(document.getElementById('f-year').value) || null,
+    total_copies: parseInt(document.getElementById('f-copies').value) || 1,
+    description: document.getElementById('f-desc').value.trim()
+  };
+
+  if (id) {
+    const idx = booksList.findIndex(b => b.id === id);
+    if (idx !== -1) booksList[idx] = { ...booksList[idx], ...data };
+    toast('Livre modifié avec succès');
+  } else {
+    const newBook = { ...data, id: Date.now(), available_copies: data.total_copies };
+    booksList.push(newBook);
+    toast('Livre ajouté avec succès');
+  }
+  closeModal();
+  renderBooksTable();
+}
+
+function deleteBook(id) {
+  if (!confirm('Supprimer ce livre ?')) return;
+  booksList = booksList.filter(b => b.id !== id);
+  toast('Livre supprimé');
+  renderBooksTable();
+}
+
+// ============================================================
+// USERS
+// ============================================================
+let usersList = [...DEMO_DATA.users];
+let usersFilter = '';
+
+async function users() {
+  document.getElementById('topbar-actions').innerHTML = `
+    <div class="search-bar">
+      <span>🔍</span>
+      <input type="text" placeholder="Nom ou email..." id="users-search" oninput="filterUsers(this.value)">
+    </div>
+    <button class="btn btn-primary" onclick="openUserModal()">+ Ajouter</button>
+  `;
+  renderUsersTable();
+}
+
+function filterUsers(val) {
+  usersFilter = val.toLowerCase();
+  renderUsersTable();
+}
+
+function renderUsersTable() {
+  const filtered = usersList.filter(u =>
+    u.name.toLowerCase().includes(usersFilter) ||
+    u.email.toLowerCase().includes(usersFilter)
+  );
+
+  const typeBadge = { 'Etudiant': 'badge-blue', 'Professeur': 'badge-purple', 'Personnel administratif': 'badge-yellow' };
+
+  document.getElementById('page-content').innerHTML = `
+    <div class="page">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">👥 Utilisateurs — ${filtered.length}</div>
+          <div class="filter-bar">
+            ${['Tous','Etudiant','Professeur','Personnel administratif'].map(t =>
+              `<button class="btn btn-ghost btn-sm" onclick="filterByType('${t}')">${t}</button>`
+            ).join('')}
+          </div>
+        </div>
+        <div class="card-body table-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Nom</th><th>Email</th><th>Type</th><th>ID Étudiant</th><th>Téléphone</th><th>Statut</th><th>Actions</th></tr></thead>
+            <tbody>
+              ${filtered.map(u => `
+                <tr>
+                  <td style="color:var(--muted);font-family:var(--mono)">${u.id}</td>
+                  <td style="font-weight:600">${u.name}</td>
+                  <td style="color:var(--muted);font-size:12px">${u.email}</td>
+                  <td><span class="badge ${typeBadge[u.user_type]||'badge-gray'}">${u.user_type}</span></td>
+                  <td style="font-family:var(--mono);font-size:11px;color:var(--muted)">${u.student_id||'—'}</td>
+                  <td style="color:var(--muted)">${u.phone||'—'}</td>
+                  <td><span class="badge ${u.is_active?'badge-green':'badge-red'}">${u.is_active?'Actif':'Inactif'}</span></td>
+                  <td>
+                    <div style="display:flex;gap:6px">
+                      <button class="btn btn-ghost btn-sm" onclick="openUserModal(${u.id})">✏️</button>
+                      <button class="btn btn-danger btn-sm" onclick="deleteUser(${u.id})">🗑️</button>
+                    </div>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+let _userTypeFilter = '';
+function filterByType(type) {
+  _userTypeFilter = type === 'Tous' ? '' : type;
+  usersFilter = _userTypeFilter.toLowerCase();
+  renderUsersTable();
+}
+
+function openUserModal(id) {
+  const user = id ? usersList.find(u => u.id === id) : null;
+  openModal(`
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">${user ? 'Modifier l\'utilisateur' : 'Nouvel utilisateur'}</div>
+        <button class="btn btn-ghost btn-sm" onclick="closeModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Nom complet *</label>
+            <input class="form-control" id="u-name" value="${user?.name||''}" placeholder="Prénom Nom">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email *</label>
+            <input class="form-control" id="u-email" type="email" value="${user?.email||''}" placeholder="exemple@dit.sn">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Type d'utilisateur *</label>
+            <select class="form-control" id="u-type" onchange="toggleStudentId()">
+              ${['Etudiant','Professeur','Personnel administratif'].map(t =>
+                `<option ${user?.user_type===t?'selected':''}>${t}</option>`
+              ).join('')}
+            </select>
+          </div>
+          <div class="form-group" id="student-id-group" style="${user?.user_type!=='Etudiant'&&user?'display:none':''}">
+            <label class="form-label">ID Étudiant</label>
+            <input class="form-control" id="u-sid" value="${user?.student_id||''}" placeholder="DIT2024XXX">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Téléphone</label>
+          <input class="form-control" id="u-phone" value="${user?.phone||''}" placeholder="+221 7X XXX XXXX">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeModal()">Annuler</button>
+        <button class="btn btn-primary" onclick="saveUser(${id||'null'})">${user ? 'Modifier' : 'Créer'}</button>
+      </div>
+    </div>
+  `);
+}
+
+function toggleStudentId() {
+  const type = document.getElementById('u-type').value;
+  const g = document.getElementById('student-id-group');
+  if (g) g.style.display = type === 'Etudiant' ? '' : 'none';
+}
+
+function saveUser(id) {
+  const name = document.getElementById('u-name').value.trim();
+  const email = document.getElementById('u-email').value.trim();
+  const user_type = document.getElementById('u-type').value;
+  if (!name || !email) { toast('Nom et email requis', 'error'); return; }
+
+  const data = { name, email, user_type,
+    student_id: document.getElementById('u-sid')?.value.trim() || null,
+    phone: document.getElementById('u-phone').value.trim() || null,
+    is_active: true
+  };
+
+  if (id) {
+    const idx = usersList.findIndex(u => u.id === id);
+    if (idx !== -1) usersList[idx] = { ...usersList[idx], ...data };
+    toast('Utilisateur modifié');
+  } else {
+    usersList.push({ ...data, id: Date.now() });
+    toast('Utilisateur créé');
+  }
+  closeModal();
+  renderUsersTable();
+}
+
+function deleteUser(id) {
+  if (!confirm('Supprimer cet utilisateur ?')) return;
+  usersList = usersList.filter(u => u.id !== id);
+  toast('Utilisateur supprimé');
+  renderUsersTable();
+}
+
+// ============================================================
+// LOANS
+// ============================================================
+let loansList = [...DEMO_DATA.loans];
+let loansFilter = 'all';
+
+async function loans() {
+  document.getElementById('topbar-actions').innerHTML = `
+    <button class="btn btn-primary" onclick="openLoanModal()">+ Nouvel emprunt</button>
+  `;
+  renderLoansTable();
+}
+
+function renderLoansTable() {
+  let filtered = loansList;
+  if (loansFilter === 'active') filtered = loansList.filter(l => l.status === 'active' && !l.is_overdue);
+  else if (loansFilter === 'overdue') filtered = loansList.filter(l => l.is_overdue || l.status === 'overdue');
+  else if (loansFilter === 'returned') filtered = loansList.filter(l => l.status === 'returned');
+
+  document.getElementById('page-content').innerHTML = `
+    <div class="page">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">🔄 Historique des Emprunts — ${filtered.length}</div>
+          <div class="filter-bar">
+            ${[{v:'all',l:'Tous'},{v:'active',l:'Actifs'},{v:'overdue',l:'En retard'},{v:'returned',l:'Retournés'}].map(f =>
+              `<button class="btn ${loansFilter===f.v?'btn-primary':'btn-ghost'} btn-sm" onclick="setLoanFilter('${f.v}')">${f.l}</button>`
+            ).join('')}
+          </div>
+        </div>
+        <div class="card-body table-wrap">
+          ${filtered.length === 0 ? '<div class="empty"><div class="empty-icon">📭</div><div class="empty-text">Aucun emprunt trouvé</div></div>' : `
+          <table>
+            <thead><tr><th>#</th><th>Livre</th><th>Emprunteur</th><th>Emprunté le</th><th>Date limite</th><th>Retour</th><th>Statut</th><th>Actions</th></tr></thead>
+            <tbody>
+              ${filtered.map(l => `
+                <tr>
+                  <td style="color:var(--muted);font-family:var(--mono)">${l.id}</td>
+                  <td style="font-weight:600;max-width:160px">${l.book?.title || 'Livre #'+l.book_id}</td>
+                  <td>
+                    <div>${l.user?.name || 'User #'+l.user_id}</div>
+                    <div style="font-size:11px;color:var(--muted)">${l.user?.user_type||''}</div>
+                  </td>
+                  <td style="color:var(--muted);font-size:12px">${fmtDate(l.borrowed_at)}</td>
+                  <td style="font-size:12px;color:${l.is_overdue?'var(--danger)':'var(--muted)'}">${fmtDate(l.due_date)}</td>
+                  <td style="color:var(--muted);font-size:12px">${l.returned_at ? fmtDate(l.returned_at) : '—'}</td>
+                  <td>
+                    ${loanBadge(l)}
+                    ${l.days_overdue > 0 ? `<div style="font-size:10px;color:var(--danger);margin-top:2px">+${l.days_overdue} jours</div>` : ''}
+                  </td>
+                  <td>
+                    ${l.status !== 'returned' ? `<button class="btn btn-success btn-sm" onclick="returnLoan(${l.id})">↩ Retourner</button>` : '<span style="color:var(--muted);font-size:12px">—</span>'}
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>`}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function setLoanFilter(f) { loansFilter = f; renderLoansTable(); }
+
+function fmtDate(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('fr-FR', {day:'2-digit',month:'short',year:'numeric'});
+}
+
+function returnLoan(id) {
+  const loan = loansList.find(l => l.id === id);
+  if (!loan) return;
+  loan.status = 'returned';
+  loan.returned_at = new Date().toISOString();
+  loan.is_overdue = false;
+  // Update book availability
+  const book = booksList.find(b => b.id === loan.book_id);
+  if (book) book.available_copies = Math.min(book.total_copies, book.available_copies + 1);
+  toast('Livre retourné avec succès ✅');
+  renderLoansTable();
+}
+
+function openLoanModal() {
+  const availableBooks = booksList.filter(b => b.available_copies > 0);
+  openModal(`
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">Nouvel Emprunt</div>
+        <button class="btn btn-ghost btn-sm" onclick="closeModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Livre *</label>
+          <select class="form-control" id="l-book">
+            <option value="">— Sélectionner un livre —</option>
+            ${availableBooks.map(b => `<option value="${b.id}">${b.title} (${b.available_copies} dispo.)</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Utilisateur *</label>
+          <select class="form-control" id="l-user">
+            <option value="">— Sélectionner un utilisateur —</option>
+            ${usersList.filter(u => u.is_active).map(u => `<option value="${u.id}">${u.name} (${u.user_type})</option>`).join('')}
+          </select>
+        </div>
+        <div style="background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.2);border-radius:8px;padding:12px 16px;font-size:13px;color:var(--muted)">
+          📅 Durée d'emprunt : <strong style="color:var(--accent)">14 jours</strong>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeModal()">Annuler</button>
+        <button class="btn btn-primary" onclick="saveLoan()">Confirmer l'emprunt</button>
+      </div>
+    </div>
+  `);
+}
+
+function saveLoan() {
+  const bookId = parseInt(document.getElementById('l-book').value);
+  const userId = parseInt(document.getElementById('l-user').value);
+  if (!bookId || !userId) { toast('Veuillez sélectionner un livre et un utilisateur', 'error'); return; }
+
+  const existing = loansList.find(l => l.book_id === bookId && l.user_id === userId && l.status === 'active');
+  if (existing) { toast('Cet utilisateur a déjà emprunté ce livre', 'error'); return; }
+
+  const book = booksList.find(b => b.id === bookId);
+  const user = usersList.find(u => u.id === userId);
+  if (book.available_copies <= 0) { toast('Aucun exemplaire disponible', 'error'); return; }
+
+  book.available_copies -= 1;
+  const due = new Date();
+  due.setDate(due.getDate() + 14);
+
+  const loan = {
+    id: Date.now(), book_id: bookId, user_id: userId,
+    borrowed_at: new Date().toISOString(),
+    due_date: due.toISOString(),
+    returned_at: null, status: 'active', is_overdue: false, days_overdue: 0,
+    book: { title: book.title, author: book.author },
+    user: { name: user.name, user_type: user.user_type }
+  };
+  loansList.unshift(loan);
+  toast('Emprunt enregistré ✅');
+  closeModal();
+  renderLoansTable();
+}
+
+// ============================================================
+// STATUS
+// ============================================================
+async function status() {
+  document.getElementById('topbar-actions').innerHTML = `
+    <button class="btn btn-ghost" onclick="status()">🔄 Actualiser</button>
+  `;
+
+  document.getElementById('page-content').innerHTML = `
+    <div class="page">
+      <div class="card">
+        <div class="card-header"><div class="card-title">⚡ Statut des Microservices</div></div>
+        <div class="card-body" style="padding:24px">
+          <div style="display:grid;gap:14px" id="services-grid">
+            ${[
+              {name:'Books Service', port:5001, color:'var(--accent)', icon:'📖'},
+              {name:'Users Service', port:5002, color:'var(--gold)', icon:'👥'},
+              {name:'Loans Service', port:5003, color:'var(--accent2)', icon:'🔄'},
+              {name:'Frontend', port:80, color:'var(--success)', icon:'🖥️'},
+              {name:'PostgreSQL DB', port:5432, color:'#3b82f6', icon:'🗄️'},
+            ].map(s => `
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 22px;background:var(--surface2);border:1px solid var(--border);border-radius:10px">
+                <div style="display:flex;align-items:center;gap:14px">
+                  <span style="font-size:24px">${s.icon}</span>
+                  <div>
+                    <div style="font-weight:600">${s.name}</div>
+                    <div style="font-size:12px;color:var(--muted);font-family:var(--mono)">:${s.port}</div>
+                  </div>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px">
+                  <div style="width:8px;height:8px;border-radius:50%;background:${DEMO ? 'var(--warning)' : 'var(--success)'};box-shadow:0 0 8px ${DEMO ? 'var(--warning)' : 'var(--success)'}"></div>
+                  <span class="badge ${DEMO ? 'badge-yellow' : 'badge-green'}">${DEMO ? 'Mode Démo' : 'En ligne'}</span>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+          <div style="margin-top:24px;padding:18px;background:rgba(0,212,255,0.06);border:1px solid rgba(0,212,255,0.15);border-radius:10px">
+            <div style="font-family:var(--mono);font-size:12px;color:var(--accent);margin-bottom:12px">// ARCHITECTURE MICROSERVICES</div>
+            <div style="font-size:13px;color:var(--muted);line-height:1.8">
+              <div>📌 <strong style="color:var(--text)">Nginx</strong> → Reverse proxy → Frontend (port 80)</div>
+              <div>📌 <strong style="color:var(--text)">Books Service</strong> → Flask API → PostgreSQL (port 5001)</div>
+              <div>📌 <strong style="color:var(--text)">Users Service</strong> → Flask API → PostgreSQL (port 5002)</div>
+              <div>📌 <strong style="color:var(--text)">Loans Service</strong> → Flask API → PostgreSQL (port 5003)</div>
+              <div>📌 <strong style="color:var(--text)">Jenkins</strong> → CI/CD Pipeline (port 8080)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ============================================================
+// INIT
+// ============================================================
+navigate('dashboard');
+</script>
+</body>
+</html>
