@@ -1,8 +1,10 @@
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
+from flasgger import Swagger
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy.exc import IntegrityError
 import os
 
 app = Flask(__name__)
@@ -12,8 +14,15 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
     'DATABASE_URL', 'postgresql://dituser:ditpass@db:5432/ditlibrary'
 )
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SWAGGER'] = {
+    'title': 'Users Service API',
+    'uiversion': 3,
+    'description': 'API de gestion des utilisateurs — DIT Bibliothèque',
+    'version': '1.0.0',
+}
 
 db = SQLAlchemy(app)
+swagger = Swagger(app)
 
 USER_TYPES = ['Etudiant', 'Professeur', 'Personnel administratif']
 
@@ -51,11 +60,69 @@ class User(db.Model):
 
 @app.route('/health', methods=['GET'])
 def health():
+    """
+    Vérifie l'état du service Users
+    ---
+    tags:
+      - Health
+    responses:
+      200:
+        description: Service opérationnel
+        schema:
+          type: object
+          properties:
+            status:
+              type: string
+              example: ok
+            service:
+              type: string
+              example: users-service
+    """
     return jsonify({'status': 'ok', 'service': 'users-service'})
 
 
 @app.route('/api/users', methods=['GET'])
 def get_users():
+    """
+    Récupère la liste de tous les utilisateurs
+    ---
+    tags:
+      - Utilisateurs
+    parameters:
+      - name: type
+        in: query
+        type: string
+        required: false
+        enum: [Etudiant, Professeur, Personnel administratif]
+        description: Filtre par type d'utilisateur
+    responses:
+      200:
+        description: Liste des utilisateurs
+        schema:
+          type: array
+          items:
+            $ref: '#/definitions/User'
+    definitions:
+      User:
+        type: object
+        properties:
+          id:
+            type: integer
+          name:
+            type: string
+          email:
+            type: string
+          user_type:
+            type: string
+          student_id:
+            type: string
+          phone:
+            type: string
+          is_active:
+            type: boolean
+          created_at:
+            type: string
+    """
     user_type = request.args.get('type')
     query = User.query
     if user_type:
@@ -66,12 +133,74 @@ def get_users():
 
 @app.route('/api/users/<int:user_id>', methods=['GET'])
 def get_user(user_id):
+    """
+    Récupère un utilisateur par son ID
+    ---
+    tags:
+      - Utilisateurs
+    parameters:
+      - name: user_id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Détails de l'utilisateur
+        schema:
+          $ref: '#/definitions/User'
+      404:
+        description: Utilisateur non trouvé
+    """
     user = User.query.get_or_404(user_id)
     return jsonify(user.to_dict())
 
 
 @app.route('/api/users', methods=['POST'])
 def create_user():
+    """
+    Crée un nouvel utilisateur
+    ---
+    tags:
+      - Utilisateurs
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - name
+            - email
+            - user_type
+          properties:
+            name:
+              type: string
+              example: Amadou Diallo
+            email:
+              type: string
+              example: amadou@dit.sn
+            user_type:
+              type: string
+              enum: [Etudiant, Professeur, Personnel administratif]
+              example: Etudiant
+            student_id:
+              type: string
+              example: DIT2024001
+            phone:
+              type: string
+              example: "+221771234567"
+            password:
+              type: string
+    responses:
+      201:
+        description: Utilisateur créé
+        schema:
+          $ref: '#/definitions/User'
+      400:
+        description: Données invalides
+      409:
+        description: Email déjà existant
+    """
     data = request.get_json()
     required = ['name', 'email', 'user_type']
     for f in required:
@@ -100,6 +229,43 @@ def create_user():
 
 @app.route('/api/users/<int:user_id>', methods=['PUT'])
 def update_user(user_id):
+    """
+    Met à jour un utilisateur existant
+    ---
+    tags:
+      - Utilisateurs
+    parameters:
+      - name: user_id
+        in: path
+        type: integer
+        required: true
+      - in: body
+        name: body
+        schema:
+          type: object
+          properties:
+            name:
+              type: string
+            email:
+              type: string
+            user_type:
+              type: string
+            student_id:
+              type: string
+            phone:
+              type: string
+            is_active:
+              type: boolean
+            password:
+              type: string
+    responses:
+      200:
+        description: Utilisateur mis à jour
+        schema:
+          $ref: '#/definitions/User'
+      404:
+        description: Utilisateur non trouvé
+    """
     user = User.query.get_or_404(user_id)
     data = request.get_json()
     for field in ['name', 'email', 'user_type', 'student_id', 'phone', 'is_active']:
@@ -113,6 +279,22 @@ def update_user(user_id):
 
 @app.route('/api/users/<int:user_id>', methods=['DELETE'])
 def delete_user(user_id):
+    """
+    Supprime un utilisateur
+    ---
+    tags:
+      - Utilisateurs
+    parameters:
+      - name: user_id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Utilisateur supprimé
+      404:
+        description: Utilisateur non trouvé
+    """
     user = User.query.get_or_404(user_id)
     db.session.delete(user)
     db.session.commit()
@@ -121,6 +303,22 @@ def delete_user(user_id):
 
 @app.route('/api/users/stats', methods=['GET'])
 def get_stats():
+    """
+    Statistiques globales des utilisateurs
+    ---
+    tags:
+      - Utilisateurs
+    responses:
+      200:
+        description: Statistiques par type
+        schema:
+          type: object
+          properties:
+            total_users:
+              type: integer
+            by_type:
+              type: object
+    """
     total = User.query.count()
     by_type = {}
     for t in USER_TYPES:
@@ -130,6 +328,31 @@ def get_stats():
 
 @app.route('/api/users/login', methods=['POST'])
 def login():
+    """
+    Authentification d'un utilisateur
+    ---
+    tags:
+      - Utilisateurs
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - email
+          properties:
+            email:
+              type: string
+              example: amadou@dit.sn
+            password:
+              type: string
+    responses:
+      200:
+        description: Connexion réussie
+      401:
+        description: Identifiants invalides
+    """
     data = request.get_json()
     user = User.query.filter_by(email=data.get('email')).first()
     if user and (not user.password_hash or user.check_password(data.get('password', ''))):
@@ -137,10 +360,10 @@ def login():
     return jsonify({'error': 'Invalid credentials'}), 401
 
 
-if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
-        if User.query.count() == 0:
+with app.app_context():
+    db.create_all()
+    if User.query.count() == 0:
+        try:
             seed_users = [
                 User(name='Amadou Diallo', email='amadou@dit.sn', user_type='Etudiant', student_id='DIT2024001', phone='+221771234567'),
                 User(name='Fatou Sow', email='fatou@dit.sn', user_type='Etudiant', student_id='DIT2024002', phone='+221772345678'),
@@ -149,4 +372,8 @@ if __name__ == '__main__':
             ]
             db.session.add_all(seed_users)
             db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+
+if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5002, debug=False)

@@ -28,6 +28,8 @@ services:
     container_name: dit-books
     environment:
       DATABASE_URL: postgresql://dituser:ditpass@db:5432/ditlibrary
+    ports:
+      - "5001:5001"
     depends_on:
       db:
         condition: service_healthy
@@ -48,6 +50,8 @@ services:
     container_name: dit-users
     environment:
       DATABASE_URL: postgresql://dituser:ditpass@db:5432/ditlibrary
+    ports:
+      - "5002:5002"
     depends_on:
       db:
         condition: service_healthy
@@ -70,6 +74,8 @@ services:
       DATABASE_URL: postgresql://dituser:ditpass@db:5432/ditlibrary
       BOOKS_SERVICE_URL: http://books-service:5001
       USERS_SERVICE_URL: http://users-service:5002
+    ports:
+      - "5003:5003"
     depends_on:
       db:
         condition: service_healthy
