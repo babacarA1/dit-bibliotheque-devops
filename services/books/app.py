@@ -1,7 +1,9 @@
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
+from flasgger import Swagger
 from datetime import datetime
+from sqlalchemy.exc import IntegrityError
 import os
 
 app = Flask(__name__)
@@ -11,8 +13,15 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
     'DATABASE_URL', 'postgresql://dituser:ditpass@db:5432/ditlibrary'
 )
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SWAGGER'] = {
+    'title': 'Books Service API',
+    'uiversion': 3,
+    'description': 'API de gestion des livres — DIT Bibliothèque',
+    'version': '1.0.0',
+}
 
 db = SQLAlchemy(app)
+swagger = Swagger(app)
 
 
 class Book(db.Model):
@@ -45,11 +54,72 @@ class Book(db.Model):
 
 @app.route('/health', methods=['GET'])
 def health():
+    """
+    Vérifie l'état du service Books
+    ---
+    tags:
+      - Health
+    responses:
+      200:
+        description: Service opérationnel
+        schema:
+          type: object
+          properties:
+            status:
+              type: string
+              example: ok
+            service:
+              type: string
+              example: books-service
+    """
     return jsonify({'status': 'ok', 'service': 'books-service'})
 
 
 @app.route('/api/books', methods=['GET'])
 def get_books():
+    """
+    Récupère la liste de tous les livres
+    ---
+    tags:
+      - Livres
+    parameters:
+      - name: search
+        in: query
+        type: string
+        required: false
+        description: Recherche par titre, auteur ou ISBN
+    responses:
+      200:
+        description: Liste des livres
+        schema:
+          type: array
+          items:
+            $ref: '#/definitions/Book'
+    definitions:
+      Book:
+        type: object
+        properties:
+          id:
+            type: integer
+          title:
+            type: string
+          author:
+            type: string
+          isbn:
+            type: string
+          category:
+            type: string
+          total_copies:
+            type: integer
+          available_copies:
+            type: integer
+          published_year:
+            type: integer
+          description:
+            type: string
+          created_at:
+            type: string
+    """
     search = request.args.get('search', '')
     query = Book.query
     if search:
@@ -64,12 +134,77 @@ def get_books():
 
 @app.route('/api/books/<int:book_id>', methods=['GET'])
 def get_book(book_id):
+    """
+    Récupère un livre par son ID
+    ---
+    tags:
+      - Livres
+    parameters:
+      - name: book_id
+        in: path
+        type: integer
+        required: true
+        description: ID du livre
+    responses:
+      200:
+        description: Détails du livre
+        schema:
+          $ref: '#/definitions/Book'
+      404:
+        description: Livre non trouvé
+    """
     book = Book.query.get_or_404(book_id)
     return jsonify(book.to_dict())
 
 
 @app.route('/api/books', methods=['POST'])
 def create_book():
+    """
+    Crée un nouveau livre
+    ---
+    tags:
+      - Livres
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - title
+            - author
+            - isbn
+          properties:
+            title:
+              type: string
+              example: Clean Code
+            author:
+              type: string
+              example: Robert C. Martin
+            isbn:
+              type: string
+              example: 978-0132350884
+            category:
+              type: string
+              example: Informatique
+            total_copies:
+              type: integer
+              example: 3
+            published_year:
+              type: integer
+              example: 2008
+            description:
+              type: string
+    responses:
+      201:
+        description: Livre créé
+        schema:
+          $ref: '#/definitions/Book'
+      400:
+        description: Données invalides
+      409:
+        description: ISBN déjà existant
+    """
     data = request.get_json()
     if not data or not data.get('title') or not data.get('author') or not data.get('isbn'):
         return jsonify({'error': 'title, author, and isbn are required'}), 400
@@ -95,6 +230,43 @@ def create_book():
 
 @app.route('/api/books/<int:book_id>', methods=['PUT'])
 def update_book(book_id):
+    """
+    Met à jour un livre existant
+    ---
+    tags:
+      - Livres
+    parameters:
+      - name: book_id
+        in: path
+        type: integer
+        required: true
+      - in: body
+        name: body
+        schema:
+          type: object
+          properties:
+            title:
+              type: string
+            author:
+              type: string
+            isbn:
+              type: string
+            category:
+              type: string
+            total_copies:
+              type: integer
+            published_year:
+              type: integer
+            description:
+              type: string
+    responses:
+      200:
+        description: Livre mis à jour
+        schema:
+          $ref: '#/definitions/Book'
+      404:
+        description: Livre non trouvé
+    """
     book = Book.query.get_or_404(book_id)
     data = request.get_json()
     for field in ['title', 'author', 'isbn', 'category', 'total_copies', 'published_year', 'description']:
@@ -106,6 +278,22 @@ def update_book(book_id):
 
 @app.route('/api/books/<int:book_id>', methods=['DELETE'])
 def delete_book(book_id):
+    """
+    Supprime un livre
+    ---
+    tags:
+      - Livres
+    parameters:
+      - name: book_id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Livre supprimé
+      404:
+        description: Livre non trouvé
+    """
     book = Book.query.get_or_404(book_id)
     db.session.delete(book)
     db.session.commit()
@@ -114,6 +302,38 @@ def delete_book(book_id):
 
 @app.route('/api/books/<int:book_id>/availability', methods=['PUT'])
 def update_availability(book_id):
+    """
+    Met à jour la disponibilité d'un livre (emprunt/retour)
+    ---
+    tags:
+      - Livres
+    parameters:
+      - name: book_id
+        in: path
+        type: integer
+        required: true
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - action
+          properties:
+            action:
+              type: string
+              enum: [borrow, return]
+              example: borrow
+    responses:
+      200:
+        description: Disponibilité mise à jour
+        schema:
+          $ref: '#/definitions/Book'
+      400:
+        description: Action invalide ou aucun exemplaire disponible
+      404:
+        description: Livre non trouvé
+    """
     book = Book.query.get_or_404(book_id)
     data = request.get_json()
     action = data.get('action')
@@ -133,17 +353,34 @@ def update_availability(book_id):
 
 @app.route('/api/books/stats', methods=['GET'])
 def get_stats():
+    """
+    Statistiques globales des livres
+    ---
+    tags:
+      - Livres
+    responses:
+      200:
+        description: Statistiques
+        schema:
+          type: object
+          properties:
+            total_books:
+              type: integer
+            available_copies:
+              type: integer
+            borrowed_copies:
+              type: integer
+    """
     total = Book.query.count()
     available = db.session.query(db.func.sum(Book.available_copies)).scalar() or 0
     borrowed = db.session.query(db.func.sum(Book.total_copies - Book.available_copies)).scalar() or 0
     return jsonify({'total_books': total, 'available_copies': available, 'borrowed_copies': borrowed})
 
 
-if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
-        # Seed data
-        if Book.query.count() == 0:
+with app.app_context():
+    db.create_all()
+    if Book.query.count() == 0:
+        try:
             seed_books = [
                 Book(title="Clean Code", author="Robert C. Martin", isbn="978-0132350884", category="Informatique", total_copies=3, available_copies=3, published_year=2008),
                 Book(title="The Pragmatic Programmer", author="Andrew Hunt", isbn="978-0201616224", category="Informatique", total_copies=2, available_copies=2, published_year=1999),
@@ -153,4 +390,8 @@ if __name__ == '__main__':
             ]
             db.session.add_all(seed_books)
             db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+
+if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5001, debug=False)

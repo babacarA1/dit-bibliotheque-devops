@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
+from flasgger import Swagger
 from datetime import datetime, timedelta
 import requests
 import os
@@ -12,12 +13,19 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
     'DATABASE_URL', 'postgresql://dituser:ditpass@db:5432/ditlibrary'
 )
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SWAGGER'] = {
+    'title': 'Loans Service API',
+    'uiversion': 3,
+    'description': 'API de gestion des emprunts — DIT Bibliothèque',
+    'version': '1.0.0',
+}
 
 BOOKS_SERVICE = os.environ.get('BOOKS_SERVICE_URL', 'http://books-service:5001')
 USERS_SERVICE = os.environ.get('USERS_SERVICE_URL', 'http://users-service:5002')
 LOAN_DURATION_DAYS = 14
 
 db = SQLAlchemy(app)
+swagger = Swagger(app)
 
 
 class Loan(db.Model):
@@ -28,7 +36,7 @@ class Loan(db.Model):
     borrowed_at = db.Column(db.DateTime, default=datetime.utcnow)
     due_date = db.Column(db.DateTime)
     returned_at = db.Column(db.DateTime, nullable=True)
-    status = db.Column(db.String(20), default='active')  # active, returned, overdue
+    status = db.Column(db.String(20), default='active')
 
     def to_dict(self):
         now = datetime.utcnow()
@@ -37,10 +45,7 @@ class Loan(db.Model):
             self.due_date and
             now > self.due_date
         )
-        days_overdue = 0
-        if is_overdue:
-            days_overdue = (now - self.due_date).days
-
+        days_overdue = (now - self.due_date).days if is_overdue else 0
         return {
             'id': self.id,
             'book_id': self.book_id,
@@ -56,11 +61,81 @@ class Loan(db.Model):
 
 @app.route('/health', methods=['GET'])
 def health():
+    """
+    Vérifie l'état du service Loans
+    ---
+    tags:
+      - Health
+    responses:
+      200:
+        description: Service opérationnel
+        schema:
+          type: object
+          properties:
+            status:
+              type: string
+              example: ok
+            service:
+              type: string
+              example: loans-service
+    """
     return jsonify({'status': 'ok', 'service': 'loans-service'})
 
 
 @app.route('/api/loans', methods=['GET'])
 def get_loans():
+    """
+    Récupère la liste des emprunts
+    ---
+    tags:
+      - Emprunts
+    parameters:
+      - name: user_id
+        in: query
+        type: integer
+        required: false
+        description: Filtrer par utilisateur
+      - name: book_id
+        in: query
+        type: integer
+        required: false
+        description: Filtrer par livre
+      - name: status
+        in: query
+        type: string
+        required: false
+        enum: [active, returned]
+        description: Filtrer par statut
+    responses:
+      200:
+        description: Liste des emprunts
+        schema:
+          type: array
+          items:
+            $ref: '#/definitions/Loan'
+    definitions:
+      Loan:
+        type: object
+        properties:
+          id:
+            type: integer
+          book_id:
+            type: integer
+          user_id:
+            type: integer
+          borrowed_at:
+            type: string
+          due_date:
+            type: string
+          returned_at:
+            type: string
+          status:
+            type: string
+          is_overdue:
+            type: boolean
+          days_overdue:
+            type: integer
+    """
     user_id = request.args.get('user_id')
     book_id = request.args.get('book_id')
     status = request.args.get('status')
@@ -79,7 +154,6 @@ def get_loans():
     loan_dicts = []
     for loan in loans:
         d = loan.to_dict()
-        # Enrich with book and user info
         try:
             book_resp = requests.get(f'{BOOKS_SERVICE}/api/books/{loan.book_id}', timeout=3)
             if book_resp.status_code == 200:
@@ -98,17 +172,67 @@ def get_loans():
 
 @app.route('/api/loans/<int:loan_id>', methods=['GET'])
 def get_loan(loan_id):
+    """
+    Récupère un emprunt par son ID
+    ---
+    tags:
+      - Emprunts
+    parameters:
+      - name: loan_id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Détails de l'emprunt
+        schema:
+          $ref: '#/definitions/Loan'
+      404:
+        description: Emprunt non trouvé
+    """
     loan = Loan.query.get_or_404(loan_id)
     return jsonify(loan.to_dict())
 
 
 @app.route('/api/loans', methods=['POST'])
 def create_loan():
+    """
+    Crée un nouvel emprunt
+    ---
+    tags:
+      - Emprunts
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - book_id
+            - user_id
+          properties:
+            book_id:
+              type: integer
+              example: 1
+            user_id:
+              type: integer
+              example: 1
+    responses:
+      201:
+        description: Emprunt créé (durée 14 jours)
+        schema:
+          $ref: '#/definitions/Loan'
+      400:
+        description: Données invalides ou livre non disponible
+      409:
+        description: Emprunt actif déjà existant pour ce livre/utilisateur
+      503:
+        description: Service livres inaccessible
+    """
     data = request.get_json()
     if not data.get('book_id') or not data.get('user_id'):
         return jsonify({'error': 'book_id and user_id are required'}), 400
 
-    # Check active loan for same book/user
     existing = Loan.query.filter_by(
         book_id=data['book_id'],
         user_id=data['user_id'],
@@ -117,7 +241,6 @@ def create_loan():
     if existing:
         return jsonify({'error': 'User already has an active loan for this book'}), 409
 
-    # Update book availability
     try:
         resp = requests.put(
             f'{BOOKS_SERVICE}/api/books/{data["book_id"]}/availability',
@@ -141,11 +264,30 @@ def create_loan():
 
 @app.route('/api/loans/<int:loan_id>/return', methods=['PUT'])
 def return_loan(loan_id):
+    """
+    Enregistre le retour d'un livre emprunté
+    ---
+    tags:
+      - Emprunts
+    parameters:
+      - name: loan_id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Retour enregistré
+        schema:
+          $ref: '#/definitions/Loan'
+      400:
+        description: Emprunt déjà retourné
+      404:
+        description: Emprunt non trouvé
+    """
     loan = Loan.query.get_or_404(loan_id)
     if loan.status == 'returned':
         return jsonify({'error': 'Loan already returned'}), 400
 
-    # Update book availability
     try:
         requests.put(
             f'{BOOKS_SERVICE}/api/books/{loan.book_id}/availability',
@@ -163,6 +305,26 @@ def return_loan(loan_id):
 
 @app.route('/api/loans/stats', methods=['GET'])
 def get_stats():
+    """
+    Statistiques globales des emprunts
+    ---
+    tags:
+      - Emprunts
+    responses:
+      200:
+        description: Statistiques
+        schema:
+          type: object
+          properties:
+            total_loans:
+              type: integer
+            active_loans:
+              type: integer
+            returned_loans:
+              type: integer
+            overdue_loans:
+              type: integer
+    """
     now = datetime.utcnow()
     total = Loan.query.count()
     active = Loan.query.filter_by(status='active').count()
@@ -179,7 +341,8 @@ def get_stats():
     })
 
 
+with app.app_context():
+    db.create_all()
+
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
     app.run(host='0.0.0.0', port=5003, debug=False)
