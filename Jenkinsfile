@@ -1,6 +1,12 @@
 pipeline {
     agent any
 
+
+     // AJOUTE CE BLOC ICI
+    tools {
+        dockerTool 'docker' 
+    }
+
     environment {
         PROJECT_NAME    = 'dit-bibliotheque'
         DOCKER_REGISTRY = 'ghcr.io/dit-devops'
@@ -21,7 +27,7 @@ pipeline {
             steps {
                 echo '=== Nettoyage et Récupération manuelle ==='
                 deleteDir() // Supprime le dossier de travail corrompu
-                git credentialsId: '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', url: 'https://github.com/babacarA1/dit-bibliotheque-devops.git', branch: 'main'
+                git credentialsId: 'token', url: 'https://github.com/babacarA1/dit-bibliotheque-devops.git', branch: 'main'
             }
         }
 
@@ -33,6 +39,7 @@ pipeline {
                     steps {
                         dir('services/books') {
                             sh 'docker run --rm -v $(pwd):/app -w /app python:3.11-slim sh -c "pip install flake8 --quiet && flake8 app.py --max-line-length=120 --ignore=E501 || true"'
+
                         }
                     }
                 }
@@ -40,6 +47,7 @@ pipeline {
                     steps {
                         dir('services/users') {
                             sh 'docker run --rm -v $(pwd):/app -w /app python:3.11-slim sh -c "pip install flake8 --quiet && flake8 app.py --max-line-length=120 --ignore=E501 || true"'
+
                         }
                     }
                 }
@@ -47,6 +55,7 @@ pipeline {
                     steps {
                         dir('services/loans') {
                             sh 'docker run --rm -v $(pwd):/app -w /app python:3.11-slim sh -c "pip install flake8 --quiet && flake8 app.py --max-line-length=120 --ignore=E501 || true"'
+
                         }
                     }
                 }
