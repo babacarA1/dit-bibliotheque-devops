@@ -1,12 +1,6 @@
 pipeline {
     agent any
 
-
-     // AJOUTE CE BLOC ICI
-    tools {
-        dockerTool 'docker' 
-    }
-
     environment {
         PROJECT_NAME    = 'dit-bibliotheque'
         DOCKER_REGISTRY = 'ghcr.io/dit-devops'
