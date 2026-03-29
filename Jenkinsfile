@@ -17,7 +17,6 @@ pipeline {
     stages {
 
         // ──────────────────────────────────────────────────────
-        sh 'docker --version'
         stage('📥 Checkout') {
             steps {
                 echo '=== Récupération du code depuis GitHub ==='
