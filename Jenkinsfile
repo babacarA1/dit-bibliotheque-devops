@@ -3,17 +3,9 @@ pipeline {
 
     environment {
         PROJECT_NAME    = 'dit-bibliotheque'
-        GIT_REPO        = 'https://github.com'
-    }
-
-    options {
-        buildDiscarder(logRotator(numToKeepStr: '10'))
-        timeout(time: 30, unit: 'MINUTES')
-        timestamps()
     }
 
     stages {
-        // 1. Récupération du code
         stage('📥 Checkout') {
             steps {
                 deleteDir()
@@ -21,62 +13,54 @@ pipeline {
             }
         }
 
-        // 2. Analyse (Lint)
-        stage('🔍 Analyse du code') {
+        stage('🔍 Analyse & Tests') {
             parallel {
-                stage('Lint Books') {
+                stage('Books Service') {
                     steps {
-                        sh "docker run --rm -v ${WORKSPACE}/services/books:/app -w /app python:3.11-slim sh -c 'pip install flake8 --quiet && flake8 app.py --ignore=E501 || true'"
+                        dir('services/books') {
+                            // On construit une image temporaire avec le code dedans pour tester
+                            sh '''
+                                docker build -t test-books .
+                                docker run --rm test-books sh -c "pip install flake8 pytest --quiet && flake8 app.py --ignore=E501 || true && python -m pytest tests/ || echo No tests"
+                            '''
+                        }
                     }
                 }
-                stage('Lint Users') {
+                stage('Users Service') {
                     steps {
-                        sh "docker run --rm -v ${WORKSPACE}/services/users:/app -w /app python:3.11-slim sh -c 'pip install flake8 --quiet && flake8 app.py --ignore=E501 || true'"
+                        dir('services/users') {
+                            sh '''
+                                docker build -t test-users .
+                                docker run --rm test-users sh -c "pip install flake8 pytest --quiet && flake8 app.py --ignore=E501 || true && python -m pytest tests/ || echo No tests"
+                            '''
+                        }
                     }
                 }
-                stage('Lint Loans') {
+                stage('Loans Service') {
                     steps {
-                        sh "docker run --rm -v ${WORKSPACE}/services/loans:/app -w /app python:3.11-slim sh -c 'pip install flake8 --quiet && flake8 app.py --ignore=E501 || true'"
+                        dir('services/loans') {
+                            sh '''
+                                docker build -t test-loans .
+                                docker run --rm test-loans sh -c "pip install flake8 pytest --quiet && flake8 app.py --ignore=E501 || true && python -m pytest tests/ || echo No tests"
+                            '''
+                        }
                     }
                 }
             }
         }
 
-        // 3. Tests unitaires
-        stage('🧪 Tests unitaires') {
-            parallel {
-                stage('Tests Books') {
-                    steps {
-                        sh "docker run --rm -v ${WORKSPACE}/services/books:/app -w /app python:3.11-slim sh -c 'pip install -r requirements.txt pytest --quiet && python -m pytest tests/ -v || echo No tests'"
-                    }
-                }
-                stage('Tests Users') {
-                    steps {
-                        sh "docker run --rm -v ${WORKSPACE}/services/users:/app -w /app python:3.11-slim sh -c 'pip install -r requirements.txt pytest --quiet && python -m pytest tests/ -v || echo No tests'"
-                    }
-                }
-                stage('Tests Loans') {
-                    steps {
-                        sh "docker run --rm -v ${WORKSPACE}/services/loans:/app -w /app python:3.11-slim sh -c 'pip install -r requirements.txt pytest --quiet && python -m pytest tests/ -v || echo No tests'"
-                    }
-                }
-            }
-        }
-
-        // 4. Build et Déploiement
-        stage('🐳 Build & Deploy') {
+        stage('🚀 Build & Deploy') {
             steps {
                 sh '''
                     docker-compose down --remove-orphans || true
                     docker-compose up -d --build
-                    echo "Attente du démarrage des services..."
+                    echo "Services démarrés, attente de stabilisation..."
                     sleep 20
                 '''
             }
         }
 
-        // 5. Vérification
-        stage('✅ Santé') {
+        stage('✅ Vérification') {
             steps {
                 sh 'docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep dit || true'
             }
@@ -84,11 +68,7 @@ pipeline {
     }
 
     post {
-        success {
-            echo "✅ DÉPLOIEMENT RÉUSSI - Build #${BUILD_NUMBER}"
-        }
-        failure {
-            echo "❌ DÉPLOIEMENT ÉCHOUÉ - Build #${BUILD_NUMBER}"
-        }
+        success { echo "✅ PROJET DÉPLOYÉ AVEC SUCCÈS" }
+        failure { echo "❌ ÉCHEC DU PIPELINE" }
     }
 }
