@@ -19,11 +19,12 @@ pipeline {
         // ──────────────────────────────────────────────────────
         stage('📥 Checkout') {
             steps {
-                echo '=== Récupération du code depuis GitHub ==='
-                checkout scm
-                sh 'git log --oneline -5'
+                echo '=== Nettoyage et Récupération manuelle ==='
+                deleteDir() // Supprime le dossier de travail corrompu
+                git credentialsId: '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', url: 'https://github.com/babacarA1/dit-bibliotheque-devops.git', branch: 'main'
             }
         }
+
 
         // ──────────────────────────────────────────────────────
         stage('🔍 Analyse du code') {
