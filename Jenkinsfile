@@ -52,9 +52,15 @@ pipeline {
         stage('🚀 Build & Deploy') {
             steps {
                 sh '''
-                    docker-compose down --remove-orphans || true
+                    # On force la suppression de TOUT ce qui porte le nom du projet
+                    docker-compose down -v --remove-orphans || true
+                    
+                    # On s'assure qu'aucun conteneur orphelin ne bloque
+                    docker rm -f dit-db dit-books dit-users dit-loans dit-frontend || true
+                    
+                    # On relance proprement
                     docker-compose up -d --build
-                    echo "Services démarrés, attente de stabilisation..."
+                    echo "Attente de démarrage..."
                     sleep 20
                 '''
             }
