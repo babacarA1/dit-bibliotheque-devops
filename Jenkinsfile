@@ -17,9 +17,8 @@ pipeline {
     stages {
 
         // ──────────────────────────────────────────────────────
+        sh 'docker --version'
         stage('📥 Checkout') {
-            sh 'docker --version'
-
             steps {
                 echo '=== Récupération du code depuis GitHub ==='
                 checkout scm
